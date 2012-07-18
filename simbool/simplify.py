@@ -57,8 +57,10 @@ def simplify_term(P):
                 pos.remove(__trueProp)
             else:
                 return __trueProp
-        
-        return Prop('&', *(list(pos)+list(negn)))
+        terms = list(pos)+list(negn)
+        if len(terms) == 1:
+            return terms[0]
+        return Prop('&', *terms)
 
     if P.get_op() == '|':
         pos, neg, negn = breakdown(P)
@@ -75,7 +77,11 @@ def simplify_term(P):
             else:
                 return __falseProp
         
-        return Prop('|', *(list(pos) + list(negn)))
+        terms = list(pos)+list(negn)
+        if len(terms) == 1:
+            return terms[0]
+        
+        return Prop('|', *terms)
     
     assert(False)
 
