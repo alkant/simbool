@@ -5,7 +5,7 @@ A sound, fast and incomplete boolean expression simplifier.
 This is *not* based on the Quine-McCluskey algorithm.
 
 	>> from simbool.proposition import Prop
-	>> from simbool.simplify import Simplify
+	>> from simbool.simplify import simplify
 	
 	# Creating 3 atomic propositions
 	>> A, B, C = [Prop(x) for x in "ABC"]
