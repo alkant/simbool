@@ -108,6 +108,10 @@ class Prop:
     def __invert__(self):
         return Prop('~', self)
 
+    def __gt__(self, other):
+        """logical implication."""
+        return other | (~self)
+
     def __repr__(self):
         return str(self)
 
