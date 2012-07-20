@@ -32,3 +32,15 @@ This is *not* based on the Quine-McCluskey algorithm.
 Instead, it applies various formal simplification steps 
 until reaching a fixed point. The output is guaranted to be
 at most as complex as the input.
+
+Where it currently fails
+------------------------
+	
+	>> P = (A | B) & (A | B | C)
+	# Should simplify into:
+	A | B
+	
+	>> P = (C & A) | (C & B) | (A & ~B)
+	# Should simplify into one of the following:
+	(C & B) | (A & ~B)
+	(A | B) & (~B | C)
