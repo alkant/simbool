@@ -151,7 +151,7 @@ def push_neg(P):
     
     assert(False)
 
-def propagate_literals(P, domain=set()): #TODO
+def propagate_literals(P, domain=set()):
     positive = set()
     negative = set()
     for e in domain:
@@ -209,6 +209,53 @@ def simplify_basic(P):
     res = associative_collect(res)
     return simplify_everywhere(res)
 
+def factor_local(P):
+    if P.is_literal():
+        return P
+
+    subterms = []
+    for term in P.get_terms():
+        if term.is_literal():
+            if term.is_atomic():
+                subterms.append([{term}, term])
+            else:
+                subterms.append([{simplify_term(~term)}, term])
+        else:
+            sub_p = set()
+            for sub in term.get_terms():
+                if sub.is_positive():
+                    sub_p.add(sub)
+                else:
+                    sub_p.add(simplify_term(~sub))
+            subterms.append([sub_p, term])
+    
+    counts = {}
+    for s, _ in subterms:
+        for ss in s:
+            if ss not in counts:
+                counts[ss] = 0
+            counts[ss] += 1
+    
+    sp = counts.keys()
+    sp.sort(key = lambda x: counts[x], reverse=True)
+    if counts[sp[0]] <= 2:
+        return P
+    
+    to_keep = [x[1] for x in subterms if sp[0] not in x[0]]
+    to_factor = Prop(P.get_op(), *[x[1] for x in subterms if sp[0] in x[0]])
+    return Prop(P.get_op(), (sp[0] & to_factor) | (~sp[0] & to_factor), *to_keep)
+
+def factor_at_top(P):
+    if P.is_literal():
+        return P
+    
+    factored = factor_local(P)
+
+    if factored is not P:
+        return factored
+    
+    return Prop(P.get_op(), *[factor_at_top(sub) for sub in P.get_terms()])
+
 def simplify(P):
     """Apply various strategies until reaching fixed point."""
     res = simplify_basic(P)
@@ -219,7 +266,9 @@ def simplify(P):
         res = associative_collect(res)
         res = simplify_everywhere(res)
         if old == res:
-            break
+            res = factor_at_top(res)
+            if res == old:
+                break
         old = res
         res = propagate_literals(res)
 
