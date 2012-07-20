@@ -172,8 +172,7 @@ def propagate_literals(P, domain=set()):
         return P
 
     if P.get_op() in ['~']:
-        print("Try running push_neg() first.")
-        return Prop('~', propagate_literals(P.get_terms()[0]))
+        return Prop('~', propagate_literals(P.get_terms()[0], domain))
 
     if P.get_op() in ['&', '|']:
         new_literals = []
@@ -217,32 +216,47 @@ def factor_local(P):
     for term in P.get_terms():
         if term.is_literal():
             if term.is_atomic():
-                subterms.append([{term}, term])
+                subterms.append([{term}, {term}, term])
             else:
-                subterms.append([{simplify_term(~term)}, term])
+                subterms.append([{simplify_term(~term)}, {term}, term])
         else:
             sub_p = set()
+            sub_p_raw = set()
             for sub in term.get_terms():
                 if sub.is_positive():
                     sub_p.add(sub)
+                    sub_p_raw.add(sub)
                 else:
                     sub_p.add(simplify_term(~sub))
-            subterms.append([sub_p, term])
+                    sub_p_raw.add(sub)
+            subterms.append([sub_p, sub_p_raw, term])
     
     counts = {}
-    for s, _ in subterms:
+    counts_raw = {}
+    for s, r, _ in subterms:
         for ss in s:
             if ss not in counts:
                 counts[ss] = 0
             counts[ss] += 1
+        for sr in r:
+            if sr not in counts_raw:
+                counts_raw[sr] = 0
+            counts_raw[sr] += 1
     
     sp = counts.keys()
     sp.sort(key = lambda x: counts[x], reverse=True)
     if counts[sp[0]] <= 2:
-        return P
+        sp = counts_raw.keys()
+        sp.sort(key = lambda x: counts_raw[x], reverse=True)
+        if counts_raw[sp[0]] < 2:
+            return P
+        else:
+            to_keep = [x[2] for x in subterms if sp[0] not in x[1]]
+            to_factor = Prop(P.get_op(), *[x[2] for x in subterms if sp[0] in x[1]])
+            return Prop(P.get_op(), (sp[0] & to_factor) | (~sp[0] & to_factor), *to_keep)
     
-    to_keep = [x[1] for x in subterms if sp[0] not in x[0]]
-    to_factor = Prop(P.get_op(), *[x[1] for x in subterms if sp[0] in x[0]])
+    to_keep = [x[2] for x in subterms if sp[0] not in x[0]]
+    to_factor = Prop(P.get_op(), *[x[2] for x in subterms if sp[0] in x[0]])
     return Prop(P.get_op(), (sp[0] & to_factor) | (~sp[0] & to_factor), *to_keep)
 
 def factor_at_top(P):
