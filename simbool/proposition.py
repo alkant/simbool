@@ -109,8 +109,14 @@ class Prop:
         return Prop('~', self)
 
     def __gt__(self, other):
-        """logical implication."""
+        """material implication."""
         return other | (~self)
+    
+    def __sub__(self, other):
+        return self & ~other
+
+    def __rsub__(self, other):
+        return other.__sub__(self)
 
     def __repr__(self):
         return str(self)
