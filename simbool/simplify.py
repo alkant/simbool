@@ -151,11 +151,11 @@ def push_neg(P):
     
     assert(False)
 
-def propagate_literals(P, domain=set()):
+def propagate_hypothesis(P, domain=set()):
     positive = set()
     negative = set()
     for e in domain:
-        if e is __falseProp:
+        if e == __falseProp:
             return __falseProp
         if e.is_atomic():
             positive.add(e)
@@ -172,41 +172,36 @@ def propagate_literals(P, domain=set()):
         return P
 
     if P.get_op() in ['~']:
-        return Prop('~', propagate_literals(P.get_terms()[0], domain))
+        return Prop('~', propagate_hypothesis(P.get_terms()[0], domain))
 
     if P.get_op() in ['&', '|']:
-        new_literals = []
-        other_terms = []
+        new_terms = []
+        old_terms = []
         new_domain = set()
         for e in P.get_terms():
-            if e.is_literal():
-                if simplify_term(~e) in domain:
-                    new_literals.append(__falseProp)
+            if simplify_term(~e) in domain:
+                new_terms.append(__falseProp)
+            else:
+                if e in domain:
+                    new_terms.append(__trueProp)
                 else:
-                    if e in domain:
-                        new_literals.append(__trueProp)
+                    if e.is_literal():
+                        new_terms.append(e)
                     else:
-                        new_literals.append(e)
+                        old_terms.append(e)
+
+            if e.is_literal():
                 if P.get_op() == '&':
                     new_domain.add(e)
                 else:
                     new_domain.add(simplify_term(~e))
-            else:
-                other_terms.append(e)
 
         for e in domain:
             new_domain.add(e)
         
-        return Prop(P.get_op(), *(new_literals + [propagate_literals(sub, new_domain) for sub in other_terms]))
+        return Prop(P.get_op(), *(new_terms + [propagate_hypothesis(sub, new_domain) for sub in old_terms]))
 
     assert(False)
-
-def simplify_basic(P):
-    res = associative_collect(P)
-    res = simplify_everywhere(res)
-    res = push_neg(res)
-    res = associative_collect(res)
-    return simplify_everywhere(res)
 
 def factor_local(P):
     if P.is_literal():
@@ -253,11 +248,13 @@ def factor_local(P):
         else:
             to_keep = [x[2] for x in subterms if sp[0] not in x[1]]
             to_factor = Prop(P.get_op(), *[x[2] for x in subterms if sp[0] in x[1]])
-            return Prop(P.get_op(), (sp[0] & to_factor) | (~sp[0] & to_factor), *to_keep)
+            return Prop(P.get_op(), (sp[0] & propagate_hypothesis(to_factor, {sp[0]})) | \
+                                     (~sp[0] & propagate_hypothesis(to_factor, {simplify_term(~sp[0])})), *to_keep)
     
     to_keep = [x[2] for x in subterms if sp[0] not in x[0]]
     to_factor = Prop(P.get_op(), *[x[2] for x in subterms if sp[0] in x[0]])
-    return Prop(P.get_op(), (sp[0] & to_factor) | (~sp[0] & to_factor), *to_keep)
+    return Prop(P.get_op(), (sp[0] & propagate_hypothesis(to_factor, {sp[0]})) | \
+                            (~sp[0] & propagate_hypothesis(to_factor, {simplify_term(~sp[0])})), *to_keep)
 
 def factor_at_top(P):
     if P.is_literal():
@@ -270,12 +267,19 @@ def factor_at_top(P):
     
     return Prop(P.get_op(), *[factor_at_top(sub) for sub in P.get_terms()])
 
+def simplify_basic(P):
+    res = associative_collect(P)
+    res = simplify_everywhere(res)
+    res = push_neg(res)
+    res = associative_collect(res)
+    return simplify_everywhere(res)
+
 def simplify(P):
     """Apply various strategies until reaching fixed point."""
     res = simplify_basic(P)
     
     old = res
-    res = propagate_literals(res)
+    res = propagate_hypothesis(res)
     while True:
         res = associative_collect(res)
         res = simplify_everywhere(res)
@@ -283,7 +287,9 @@ def simplify(P):
             res = factor_at_top(res)
             if res == old:
                 break
+            res = simplify_everywhere(res)
+            res = associative_collect(res)
         old = res
-        res = propagate_literals(res)
+        res = propagate_hypothesis(res)
 
     return res
