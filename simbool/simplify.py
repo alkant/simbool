@@ -293,3 +293,33 @@ def simplify(P):
         res = propagate_hypothesis(res)
 
     return res
+    
+def stats(P, counts=dict()):
+    if P.is_literal():
+        if P.is_positive():
+            if P not in counts:
+                counts[P] = [0, 0]
+            counts[P][0] += 1
+        else:
+            pos = P.get_terms()[0]
+            if pos not in counts:
+                counts[pos] = [0, 0]
+            counts[pos][1] += 1
+        return counts
+
+    if P.oper in ['&', '|']:
+        for sub in P.terms:
+            stats(sub, counts)
+        return counts
+
+    if P.oper == '~':
+        for sub in P.terms:
+            nc = stats(sub)
+            for e in nc:
+                if e not in counts:
+                    counts[e] = [0, 0]
+                counts[e][0] += nc[e][1]
+                counts[e][1] += nc[e][0]
+        return counts
+
+    raise NameError("ERROR")
