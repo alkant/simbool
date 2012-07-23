@@ -294,7 +294,10 @@ def simplify(P):
 
     return res
     
-def stats(P, counts=dict()):
+def stats(P, counts=None):
+    if counts is None:
+        counts = dict()
+
     if P.is_literal():
         if P.is_positive():
             if P not in counts:
