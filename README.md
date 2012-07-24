@@ -35,7 +35,10 @@ at most as complex as the input.
 
 Where it currently fails
 ------------------------
-	
+	>> P = (A & ~B) | ((A | C) & B)
+	# Should simplify into:
+	A | (C & B)
+		
 	>> P = (C & A) | (C & B) | (A & ~B)
 	# Should simplify into one of the following:
 	(C & B) | (A & ~B)

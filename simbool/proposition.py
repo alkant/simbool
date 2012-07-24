@@ -65,7 +65,7 @@ class Prop:
         self._hash = hash(hash(self.oper)^hash(self.terms))
         return self._hash
     
-    def __str__(self):
+    def __repr__(self):
         def no_parenthesing(s):
             return s.atomic or s.oper == '~'
         
@@ -76,16 +76,16 @@ class Prop:
         if oper == '~':
             a = [x for x in self.terms][0]
             if no_parenthesing(a):
-                return oper+str(a)
-            return oper+'('+str(a)+')'
+                return oper+repr(a)
+            return oper+'('+repr(a)+')'
         
         if oper in ['&', '|']:
             subs = []
             for e in self.terms:
                 if no_parenthesing(e):
-                    subs.append(str(e))
+                    subs.append(repr(e))
                 else:
-                    subs.append('('+str(e)+')')
+                    subs.append('('+repr(e)+')')
             assert(len(subs) > 0)
             if len(subs) == 1:
                 return '('+oper+subs[0]+')'
@@ -117,9 +117,28 @@ class Prop:
 
     def __rsub__(self, other):
         return other.__sub__(self)
+    
+    def __pformat(self, indentation=0, space=' '):
+        if self.is_literal():
+            if self.is_positive():
+                return str(self.name)
+            return '~'+str(self.get_terms()[0].name)
+        
+        oper = self.oper
+        if oper == '~':
+            a = [x for x in self.terms][0]
+            return oper+' '+a.__pformat(indentation+2)
+        
+        if oper in ['&', '|']:
+            subs = []
+            for e in self.terms:
+                subs.append(e.__pformat(indentation+2))
+            return oper+' '+('\n'+space*(indentation+2)).join(subs)
+        
+        assert(False)
 
-    def __repr__(self):
-        return str(self)
+    def __str__(self):
+        return self.__pformat()
 
     def get_op(self):
         return self.__dict__.get('oper', None)
@@ -131,3 +150,4 @@ class Prop:
         if self.atomic:
             return 1
         return 1 + sum([x.size() for x in self.terms])
+
