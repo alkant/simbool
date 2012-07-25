@@ -58,5 +58,5 @@ With the default settings, simplify() runs for about 6 minutes on my 2GHz i7 mac
 	       (~H | S | ~E) & (~Q | ~S | ~E) & (Q | E | ~F) & (J | ~M | ~G) & (Q | ~B | ~C) & (~H | ~E | ~O) & \
 	       (~D | J | M) & (L | ~F | N) & (~H | D | G) & (R | D | O) & (~C | ~F | ~O) & (~H | ~B | ~M)
 	>> simplify(P)
-	((A & ((~I & (J | F) & M & (~H | ~F) & D) | (~H & ~J & (I | M) & ~D & F)) & ~R & ~S & ~C & ~B & ~K) | & \
+	((A & ((~I & (J | F) & M & (~H | ~F) & D) | (~H & ~J & (I | M) & ~D & F)) & ~R & ~S & ~C & ~B & ~K) | \
 	(C & B & D & I & H & K & J & S & R & ~A & ~F & ~M)) & ~E & O & N & Q & ~L & T & ~G & ~P
