@@ -147,7 +147,64 @@ class Prop:
         return [x for x in self.__dict__.get('terms', [None])]
 
     def size(self):
+        if '_size' in self.__dict__:
+            return self._size
         if self.atomic:
+            self._size = 1
             return 1
-        return 1 + sum([x.size() for x in self.terms])
+        self._size = 1 + sum([x.size() for x in self.terms])
+        return self._size
+    
+    def depth(self):
+        if '_depth' in self.__dict__:
+            return self._depth
+        if self.is_literal():
+            self._depth = 1
+            return 1
+        self._depth = 1 + max([x.depth() for x in self.terms])
+        return self._depth
+
+    def var_stats(self):
+        #if '_var_stats' in self.__dict__:
+        #    return self._var_stats
+
+        counts = dict()
+        #self._var_stats = counts
+
+        if self.is_literal():
+            if self.is_positive():
+                if self not in counts:
+                    counts[self] = [0, 0]
+                counts[self][0] += 1
+            else:
+                pos = self.get_terms()[0]
+                if pos not in counts:
+                    counts[pos] = [0, 0]
+                counts[pos][1] += 1
+            return counts
+        
+        if self.oper == '~':
+            for sub in self.terms:
+                nc = sub.var_stats()
+                for e in nc:
+                    if e not in counts:
+                        counts[e] = [0, 0]
+                    counts[e][0] += nc[e][1]
+                    counts[e][1] += nc[e][0]
+            return counts
+        
+        def update(a, counts):
+            for e in a:
+                if e not in counts:
+                    counts[e] = a[e]
+                else:
+                    counts[e][0] += a[e][0]
+                    counts[e][1] += a[e][1]
+
+        if self.oper in ['&', '|']:
+            for sub in self.terms:
+                update(sub.var_stats(), counts)
+            return counts
+
+        raise NameError("ERROR")
 

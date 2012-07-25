@@ -274,7 +274,7 @@ def simplify_basic(P):
     res = associative_collect(res)
     return simplify_everywhere(res)
 
-def simplify(P):
+def simplify_pure(P):
     """Apply various strategies until reaching fixed point."""
     res = simplify_basic(P)
     
@@ -293,36 +293,91 @@ def simplify(P):
         res = propagate_hypothesis(res)
 
     return res
+
+def hypo(P, X):
+    return simplify_pure((X & propagate_hypothesis(P, {X}))|((~X & propagate_hypothesis(P, {~X}))))
+
+def hypo2(P, X, Y):
+    return simplify_pure((X & Y & propagate_hypothesis(P, {X, Y})) | \
+                    (~X & Y & propagate_hypothesis(P, {~X, Y})) | \
+                    (X & ~Y & propagate_hypothesis(P, {X, ~Y})) | \
+                    (~X & ~Y & propagate_hypothesis(P, {~X, ~Y})))
+
+def hypo3(P, X, Y, Z):
+    return simplify_pure((X & Y & Z & propagate_hypothesis(P, {X, Y, Z})) | \
+                    (~X & Y & Z & propagate_hypothesis(P, {~X, Y, Z})) | \
+                    (X & ~Y & Z & propagate_hypothesis(P, {X, ~Y, Z})) | \
+                    (~X & ~Y & Z & propagate_hypothesis(P, {~X, ~Y, Z})) | \
+                    (X & Y & ~Z & propagate_hypothesis(P, {X, Y, ~Z})) | \
+                    (~X & Y & ~Z & propagate_hypothesis(P, {~X, Y, ~Z})) | \
+                    (X & ~Y & ~Z & propagate_hypothesis(P, {X, ~Y, ~Z})) | \
+                    (~X & ~Y & ~Z & propagate_hypothesis(P, {~X, ~Y, ~Z})))
+
+def ultra_simplify(P, depth=2):
+    """P should always be in simplified form. The depth
+        parameter controls the size of the hypothesis, the
+        running time is directly proportional to #atoms^depth, so
+        use with precaution."""
+    if P.size() < 6:
+        return None
     
-def stats(P, counts=None):
-    if counts is None:
-        counts = dict()
-
-    if P.is_literal():
-        if P.is_positive():
-            if P not in counts:
-                counts[P] = [0, 0]
-            counts[P][0] += 1
+    vars_ = P.var_stats().keys()
+    
+    #try first order
+    min_size = P.size()
+    for var in vars_:
+        c = hypo(P, var)
+        if c.size() < min_size:
+            min_size = c.size()
+            candidate = c
+    
+    if min_size < P.size():
+        return candidate
+    
+    if depth > 1:
+        #try second order
+        for i in range(len(vars_)):
+            for j in range(i+1, len(vars_)):
+                c = hypo2(P, vars_[i], vars_[j])
+                if c.size() < min_size:
+                    min_size = c.size()
+                    candidate = c
+        
+        if min_size < P.size():
+            return candidate
+    
+    if depth > 2:
+        #try third order
+        for i in range(len(vars_)):
+            for j in range(i+1, len(vars_)):
+                for k in range(j+1, len(vars_)):
+                    c = hypo3(P, vars_[i], vars_[j], vars_[k])
+                    if c.size() < min_size:
+                        min_size = c.size()
+                        candidate = c
+        
+        if min_size < P.size():
+            return candidate
+    
+    # end by simplifying down the tree
+    new_terms = []
+    old_terms = []
+    for sub in P.get_terms():
+        x = ultra_simplify(sub, depth)
+        if x is not None:
+            new_terms.append(x)
         else:
-            pos = P.get_terms()[0]
-            if pos not in counts:
-                counts[pos] = [0, 0]
-            counts[pos][1] += 1
-        return counts
+            old_terms.append(sub)
+    
+    if len(new_terms) > 0:
+        return simplify_pure(Prop(P.get_op(), *(new_terms+old_terms)))
+    
+    return None
 
-    if P.oper in ['&', '|']:
-        for sub in P.terms:
-            stats(sub, counts)
-        return counts
-
-    if P.oper == '~':
-        for sub in P.terms:
-            nc = stats(sub)
-            for e in nc:
-                if e not in counts:
-                    counts[e] = [0, 0]
-                counts[e][0] += nc[e][1]
-                counts[e][1] += nc[e][0]
-        return counts
-
-    raise NameError("ERROR")
+def simplify(P, depth=2):
+    res = simplify_pure(P)
+    while True:
+        res_new = ultra_simplify(res)
+        if res_new is None:
+            return res
+        res = res_new
