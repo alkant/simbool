@@ -1,5 +1,4 @@
-simbool
-=======
+# simbool
 
 A sound, fast and hence incomplete boolean expression simplifier in pure python.
 
@@ -37,8 +36,7 @@ Instead, it applies various formal simplification steps
 until reaching a fixed point. The output is guaranted to be
 at most as complex as the input.
 
-Simplifying SAT instances for fun
----------------------------------
+## Simplifying SAT instances for fun
 
 The following is a uniform random-3-SAT instance from the phase transition region, 
 with 20 variables and 91 clauses, retrieved from this [SAT benchmark](http://www.cs.ubc.ca/~hoos/SATLIB/benchm.html).
