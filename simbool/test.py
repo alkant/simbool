@@ -30,7 +30,7 @@ class TestSet(unittest.TestCase):
         T = Prop(True)
         F = Prop(False)
         
-        repr = ['True', 'False', 'A', '~True', '~False', '~A', 
+        reprs = ['True', 'False', 'A', '~True', '~False', '~A', 
                 'A & False', 'False & A', 'A & True', 'A & True', 
                 'A & B', 'A & B', 'A | False', 'False | A', 
                 'A | True', 'A | True', 'A | B', 'A | B', 
@@ -62,7 +62,7 @@ class TestSet(unittest.TestCase):
 
         i = 0
         for expr in self.cases:
-            self.assertEqual(str(expr), repr[i])
+            self.assertEqual(repr(expr), reprs[i])
             self.assertEqual(expr, new_commute[i])
             self.assertEqual(expr.is_atomic(), atomic[i])
             i += 1
@@ -109,7 +109,7 @@ class TestSet(unittest.TestCase):
         i = 0
         for expr in self.cases:
             expr = simplify_term(expr)
-            self.assertEqual(str(expr), simp[i])
+            self.assertEqual(repr(expr), simp[i])
             self.assertEqual(expr, new_commute[i])
             self.assertEqual(expr.is_atomic(), atomic[i])
             i += 1
